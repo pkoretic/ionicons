@@ -20,7 +20,7 @@ FONTS_DOCS_PATH = os.path.join(ROOT_PATH, 'docs', 'fonts')
 CSS_FOLDER_PATH = os.path.join(DIST_PATH, 'css')
 INPUT_SCSS_FOLDER_PATH = os.path.join(SRC_PATH, 'scss')
 OUTPUT_SCSS_FOLDER_PATH = os.path.join(DIST_PATH, 'scss')
-
+OUTPUT_QML_DIR = os.path.join(DIST_PATH, 'qml')
 
 def main():
   try:
@@ -35,6 +35,12 @@ def main():
     if e.errno != errno.EEXIST:
       raise
 
+  try:
+    os.makedirs(OUTPUT_QML_DIR)
+  except OSError as e:
+    if e.errno != errno.EEXIST:
+      raise
+
   if requires_update():
     generate_font_files()
 
@@ -44,10 +50,28 @@ def main():
   generate_scss(data)
   generate_svg_files()
   generate_cheatsheet(data)
+  generate_qml(data)
 
   if requires_update():
     generate_docs_designer_pack_zip()
 
+def generate_qml(data):
+  print "Generate QML"
+  d = []
+
+  # generate QML friendly codepoint
+  d.append('.pragma library\nvar icon = {');
+
+  for ionicon in data['icons']:
+    chr_code = ionicon['code'].replace('0x', '\\u')
+    d.append('\t"%s": "%s",' % (ionicon['name'], chr_code) )
+
+  d.append('}')
+
+  qml_file_path = os.path.join(OUTPUT_QML_DIR, 'ionicons.js')
+  f = open(qml_file_path, 'w+')
+  f.write( '\n'.join(d) )
+  f.close()
 
 def requires_update():
   m = hashlib.sha256()
